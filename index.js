@@ -1,11 +1,15 @@
 const TelegramBot = require('node-telegram-bot-api')
 const express = require('express')
 const cors = require('cors')
-const token = '5620508368:AAEqHMVLadLrWQlO2kRo1EtCT8uUinfUw5c'
+const {request, response} = require("express");
 
+const token = '5620508368:AAEqHMVLadLrWQlO2kRo1EtCT8uUinfUw5c'
 const bot = new TelegramBot(token, {polling: true});
+
+const app = express()
 app.use(express.json());
-app.use(cors())
+app.use(cors());
+
 const bootstrap = () => {
 
     bot.setMyCommands([
@@ -32,7 +36,8 @@ const bootstrap = () => {
                                     [
                                         {text: '/help', value: 'kurslarni ko\'rish'}
                                     ]
-                                ]
+                                ],
+                            resize_keyboard: true,
                         }
                 }
             )
@@ -63,8 +68,7 @@ const bootstrap = () => {
                 }
                 await bot.sendMessage(
                     chatId,
-                    `Umumiy narx - ${
-                        data.reduce((a, c) => a + c.price * c.quantity, 0)
+                    `Umumiy narx - ${data.reduce((a, c) => a + c.price * c.quantity, 0)
                         .toLocaleString("en-US", {
                             style: 'currency',
                             currency: "USD"
@@ -79,3 +83,28 @@ const bootstrap = () => {
 };
 
 bootstrap()
+
+app.post("/web-data", async (request, response) => {
+    const {queryID, products} = request.body;
+    try{
+        await bot.answerWebAppQuery(queryID, {
+
+            id: queryID,
+            title: "muvaffaqiyatli sotib oldingiz",
+            input_message_content: {
+                message_text: `Xaridingiz bilan tabriklayman. Siz${products.reduce((a, c) => a + c.price * c.quantity, 0)
+                        .toLocaleString("en-US", {
+                            style: 'currency',
+                            currency: "USD"
+                        })
+                    } qiymatga ega mahsulot sotib oldingiz`
+            }
+        })
+        return response.status(200).json({})
+    }catch (error){
+        return response.status(500).json({})
+    }
+})
+app.listen(process.env.PORT || 8000, () =>
+    console.log("server started")
+)
